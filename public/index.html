@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Sruput Server</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+        }
+        .wrapper {
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            background: #666;
+            color: orangered;
+            padding-top: 100px;
+        }
+        h1, h3 {
+            display: block;
+            margin: auto;
+            text-align: center;
+            text-shadow: 0 0 15px rgba(0,0,0,0.7)
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrapper">
+        <h1>Selamat Datang di Server API Sruput.</h1>
+        <h3>Anda tidak boleh mengkases langsung server ini. Gunakan aplikasi klien.</h3>
+        <button onclick='toggleReg()'>Reg Form Toggle</button>
+        <button onclick='toggleLogin()'>Login Form Toggle</button>
+        <button onclick='toggleTblUser()'>TableUserToggle</button>
+        <div class="form-container">
+            
+            <div class="regForm">
+                <form id='frmReg' onsubmit='javascript(preventDefault());'>
+                    <input type="text" name='periode' value='10-2' disabled>
+                    <input type="text" name='_id' placeholder='ID'>
+                    <input type="text" name='uname' placeholder='User Name'>
+                    <input type="text" name='nama' placeholder='Nama'>
+                    <input type="text" name='password' placeholder='Password'>
+                    <input type="text" name='_role' placeholder='Peran'>
+                    <input type="text" name='email' placeholder='Email'>
+                    <input type="text" name='hp' placeholder='HP'>
+                    
+                </form>
+                <button onclick='register();'>Daftar</button>
+            </div>
+            <hr />
+            <div class="loginForm">
+                <form id="frmLogin" onsubmit='javascript(preventDefault());'>
+                    <input type="text" name='periode' value='10-2' disabled>
+                    <input type="text" name='uname' placeholder='User Name'>
+                    <input type="text" name='password' placeholder='Password'>
+                    <input type="text" name='_role' placeholder='Peran'>
+                </form>
+                <button onclick='login();'>Masuk</button>
+            </div>
+        </div>
+        <hr>
+        <div class="tableUsers">
+            <button onclick='fetchUsers();'>Fetch Users</button>
+            <table>
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Uname</th>
+                        <th>Nama</th>
+                        <th>Password</th>
+                        <th>Email</th>
+                        <th>HP</th>
+                        <th>Role</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <script type='text/javascript' src='jquery-1.7.1.min.js'>
+    </script>
+    <script>
+        $('document').ready(function() {
+            register = function(){
+                var data = $('#frmReg').serialize();
+                $.ajax({
+                    type: 'post',
+                    data: data,
+                    url: 'http://localhost:4567/user/users',
+                    success: function(res) {
+                        console.log(res);
+                    }
+                });
+                
+            };
+            login = () => {
+               var data = $('#frmLogin').serialize();
+               console.log(data);
+               $.ajax({
+                    type: 'post',
+                    data: data,
+                    url: 'http://localhost:4567/user/authenticate',
+                    success: function(res) {
+                        sessionStorage.setItem('token', res.token);
+                        //localStorage.setItem('token', res.token);
+                        console.log(res);
+                    }
+               });
+            };
+            
+            
+            fetchUsers = () => {
+                var token = sessionStorage.getItem('token');
+                $.ajax({
+                    url: 'http://localhost:4567/api/users',
+                    type: 'get',
+                    headers: {'X-Access-Token': token},
+                    success: (res) => {
+                        //var data = res.data;
+                        //res.forEach(function(item, index) {
+                        //    console.log(item);
+                        //});
+                        $(res).each(function(index, item) {
+                            $('tbody').append('<tr><td>'+index+'</td><td>'+item.uname+'</td><td>'+item.nama+'</td><td>'+item.password+'</td><td>'+item.email+'</td><td>'+item.hp+'</td><td>'+item._role+'</td></tr>');
+                        
+                        });
+                    }
+                });
+            };
+            
+            toggleReg = ()=> {
+                $('.regForm').toggle(500);
+            };
+            
+            toggleLogin = () => {
+                $('.loginForm').toggle(500);
+            };
+            toggleTblUser = () => {
+                $('.tableUsers').toggle(500);
+            };
+            
+        });
+    </script>
+</body>
+
+</html>
