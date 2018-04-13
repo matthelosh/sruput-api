@@ -1,4 +1,5 @@
 var express = require('express');
+var bcrypt = require('bcrypt-nodejs');
 var authrouter = express.Router();   
 var User    = require('./../models/user');
 var Guru    = require('./../models/guru');
@@ -53,37 +54,66 @@ var secret = 'sruput';
 // Login Route
   authrouter.post('/authenticate', function(req, res){
     // console.log(req.body.uname);
-    if(req.body._role == '1'){
+    var usr = req.body.uname;
+    var levelkey = usr.substr(0,1);
+    if(levelkey == '@'){
       uname = User;
-    } else if (req.body._role == '2') {
-      uname = Guru;
-    } else if (req.body._role == '3') {
+    } else if (levelkey == 'u') {
       uname = Praktikan;
+    } else {
+      uname = Guru;
     }
 
     // console.log(uname);
     uname.findOne({ uname: req.body.uname}).exec(function(err,user){
-      // console.log(user);
+        // console.log(user);
       
-        if (err) throw err;
+        if (err) console.log(err);
         if(!user){
-          res.json({success: false, message: 'user not found'});
+          res.json({success: false, message: 'Username belum terdaftar.'});
         } else if (user) {
-          if(req.body.password) {
-            var validPassword = user.comparePassword(req.body.password);
-            if (!validPassword) {
-              res.json({ success: false, message:'Password is wrong'});
-            } else {
-              //console.log(user.pic);
-              var token = jwt.sign({ uname: user.uname, nama: user.nama, email: user.email, _role: user._role }, secret, { expiresIn: '10h'} );
-              res.json({success: true, message: 'Pengguna boleh masuk. Sebentar . .', token: token});
-            }
-          } else {
-            res.json({ success: false, message: "Password not provided yet"});
-          }
-          
-          
+          // if(req.body.password) {
+            var pass = req.body.password;
+            var savedpass = user.password;
+            // try {
+            bcrypt.compare(pass, savedpass, function(err, valid){
+              if (err) {
+                if (err == 'Not a valid BCrypt hash.') {
+                  res.json({ success: false, message:'Maaf, Ada kesahalan pada password Anda. Mohon hubungi admin'});
+                } else if(err == 'ERR_HTTP_HEADERS_SENT') {
+                  res.json({ success: false, message:'Sistem Error'});
+                }
+              }
+              else {
+                if(!valid){
+                  res.json({ success: false, message: 'Password Tidak Sesuai. Cek Kembali!'});
+                } else {
+                  var token = jwt.sign({ uname: user.uname, nama: user.nama, email: user.email, _role: user._role }, secret, { expiresIn: '10h'} );
+                  res.json({success: true, message: 'Pengguna boleh masuk. Sebentar . .', token: token, role: user._role});
+                }
+              }
+              
+            });
+                  
         }
+        // catch(err) {
+        //   if(err){
+        //     res.json({ success: false, message:"Maaf ada kesalahan sistem. Hubungi Admin"});
+        //   }
+        // }
+            // if (!validPassword) {
+            //   res.json({ success: false, message:'Password is wrong'});
+            // } else {
+            //   //console.log(user.pic);
+            //   var token = jwt.sign({ uname: user.uname, nama: user.nama, email: user.email, _role: user._role }, secret, { expiresIn: '10h'} );
+            //   res.json({success: true, message: 'Pengguna boleh masuk. Sebentar . .', token: token, role: user._role});
+            // }
+          // } else {
+          //   res.json({ success: false, message: "Password belum dimasukkan"});
+          // }
+          
+          
+        // }
     });
   });
   // Get token decrypted

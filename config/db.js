@@ -8,7 +8,7 @@ mongoose.connect(secrets.db);
 module.exports = {
     dbconnect: function() {
         db.on('error', console.error.bind(console, 'Sambungan ke DB bermasalah'));
-        db.once('open', function callback() {
+        db.once('openUri', function callback() {
             console.log('Tersambung ke DB');
         });
     }

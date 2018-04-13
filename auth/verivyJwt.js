@@ -4,7 +4,7 @@ var secrets = ('./config/secrets');
 module.exports = function(req, res, next) {
     var token = req.body.token || req.query.token || req.headers['x-access-token'];
     if(token) {
-        console.log(token);
+        // console.log(token);
         jwt.verify(token, 'sruput', function(err, decoded){
             if(err){
                 return res.json({"error": true, msg: err});

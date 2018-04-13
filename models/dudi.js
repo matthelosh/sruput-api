@@ -6,12 +6,12 @@ var dudiSchema = new Schema({
     namaDudi: String,
     alamat: String,
     kota: String,
-    telp: String,
-    pemilik: String,
-    _guru: {
-        type: String,
-        ref: 'Guru'
-    }
+    telp: {type:String, default: '62888888888'},
+    pemilik: {type: String, default: 'Fulan'}
+    // _guru: {
+    //     type: String,
+    //     ref: 'Guru'
+    // }
 });
 
 module.exports = mongoose.model('Dudi', dudiSchema, 'dudis');

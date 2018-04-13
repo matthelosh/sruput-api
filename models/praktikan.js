@@ -4,6 +4,7 @@ var mongoose = require('mongoose'),
     
 var praktikanSchema = new Schema({
     _id: String,
+    nis: {type: String, default: '1234/abcd.000'},
     uname: String,
     password: String,
     kelas: String,
@@ -11,14 +12,18 @@ var praktikanSchema = new Schema({
     nama: String,
     progli: String,
     hp: String,
-    _guru: {
-        type: String,
-        ref: 'Guru'
-    },
-    _dudi: {
-        type: String,
-        ref: 'Dudi'
-    },
+    isActive: {type: String, default: '0'},
+    pindah: {type: String, default: '0'},
+    // _guru: {
+    //     type: String,
+    //     ref: 'Guru',
+    //     default: '0'
+    // },
+    // _dudi: {
+    //     type: String,
+    //     ref: 'Dudi',
+    //     default: '0'
+    // },
     _role: {type: String, default: '3'}
 });
 
@@ -30,9 +35,17 @@ praktikanSchema.pre('save', function(next){
     next();
   });
 });
+praktikanSchema.pre('updateMany', function(next){
+  var user = this;
+  bcrypt.hash(user.password, null, null, function(err, hash){
+    if (err) return next(err);
+    user.password = hash;
+    next();
+  });
+});
 
-praktikanSchema.methods.comparePassword = function(password) {
-    return bcrypt.compareSync(password, this.password);
-    // return password;
-  };
+// praktikanSchema.methods.comparePassword = function(password) {
+//     return bcrypt.compareSync(password, this.password);
+//     // return password;
+//   };
 module.exports = mongoose.model('Praktikan', praktikanSchema, 'praktikans');

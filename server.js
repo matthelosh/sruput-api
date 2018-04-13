@@ -7,6 +7,7 @@ var express  = require('express'),
     morgan      = require('morgan'),
     auth        = require('./auth/user'),
     api         = require('./api/routes/api'),
+    umum        = require('./api/routes/api_umum'),
     path        = require('path'),
     verifyToken = require('./auth/verivyJwt'),
     cors        = require('cors'),
@@ -27,6 +28,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/public'));
 
 app.use('/user', auth);
+app.use('/umum', umum);
 app.use('/api', verifyToken, api);
  
 

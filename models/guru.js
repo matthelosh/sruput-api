@@ -34,5 +34,6 @@ guruSchema.pre('save', function(next){
 guruSchema.methods.comparePassword = function(password) {
     return bcrypt.compareSync(password, this.password);
     // return password;
+    
   };
 module.exports = mongoose.model('Guru', guruSchema, 'gurus');
