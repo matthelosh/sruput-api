@@ -16,7 +16,7 @@ var express  = require('express'),
 
 // Menyambung ke Database
 db.dbconnect();
-
+app.disable('etag');
 // Logging pada proses pengembangan dengan morgan
 app.use(morgan('dev'));
 app.use(cors());
@@ -34,6 +34,7 @@ app.use('/api', verifyToken, api);
 
 app.get('*', function(req, res, next) {
     res.sendFile(path.resolve(__dirname + '/public/index.html'));
+    // res.redirect('http://localhost:8080');
     next();
 });
 

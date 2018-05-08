@@ -11,6 +11,9 @@ var Jadwal = require('./../../models/jadwal');
 var Periode = require('./../../models/periode');
 var Prakerlap = require('./../../models/prakerlap');
 var Menu = require('./../../models/menu');
+var Info = require('./../../models/info');
+var Dudiguru = require('./../../models/gurududis');
+var Pembekalan = require('./../../models/pembekalans');
 
 var storage = multer.diskStorage({ //multers disk storage settings
         destination: function (req, file, cb) {
@@ -38,7 +41,7 @@ apirouter.get('/', (req, res) => {
 });
 // Routes for Admin
 apirouter.get('/getgurus', (req, res) => {
-  Guru.find({}, function(err, gurus) {
+  Guru.find({}).populate('_dudi.id').exec(function(err, gurus) {
     res.json(gurus);
   });
 });
@@ -65,13 +68,14 @@ apirouter.post('/newdudi', (req, res) => {
   dudi.namaDudi = req.body.namaDudi,
   dudi.alamat = req.body.alamat,
   dudi.kota = req.body.kota,
-  // dudi._guru = req.body._guru;
+  dudi._guru = req.body._guru;
+  dudi.pemilik = req.body.pemilik;
   dudi.save((err, ok)=>{
     if(ok) res.send('ok_add');
   });
 });
 apirouter.post('/upddudi', (req, res) => {
-  Dudi.findOneAndUpdate({_id: req.body._id}, {$set:{_id : req.body._id, namaDudi : req.body.namaDudi, alamat : req.body.alamat, kota : req.body.kota}},function(err, ok){
+  Dudi.findOneAndUpdate({_id: req.body._id}, {$set:{_id : req.body._id, namaDudi : req.body.namaDudi, alamat : req.body.alamat, kota : req.body.kota,_guru: req.body._guru, pemilik: req.body.pemilik}},function(err, ok){
     if (err) res.console(err)
     else res.send('ok_upd');
   });
@@ -86,7 +90,7 @@ apirouter.post('/importdudis', (req, res)=>{
     dudi.namaDudi = req.body[i].namaDudi,
     dudi.alamat = req.body[i].alamat,
     dudi.kota = req.body[i].kota,
-    // dudi._guru = req.body[i]._guru;
+    dudi._guru = req.body[i]._guru;
     dudi.save();
   }
   res.send('ok_import');
@@ -123,8 +127,9 @@ apirouter.get('/users', (req, res) => {
 apirouter.get('/profile', (req, res) => {
     var role = req.query.role;
     var uname = req.query.id;
+    console.log(req.query);
     var Profile;
-    if ( role === '1') {
+    if ( role === '1' || role === '4') {
         Profile = User;
     } else if ( role === '2') {
         Profile = Guru;
@@ -142,15 +147,43 @@ apirouter.get('/profile', (req, res) => {
 });
 
 // Get Dudis for this Guru
-apirouter.get("/getmydudis", (req, res) => {
+apirouter.get('/getmydudis', (req, res, next) => {
   var _id = req.query.id;
-  Dudi.find({"_guru": _id}, function(err, dudis) {
-    if ( err ) {
-      res.json(err);
-    } else {
-      res.json(dudis);
-    }
+  Dudi.find({_guru: _id}, (err, dudis) => {
+    console.log(dudis);
+    res.json(dudis);
   });
+});
+apirouter.get('/getpkl/:periode', (req, res, next) => {
+  Prakerlap.find({periode: req.params.periode})
+          .populate('_guru _dudi _siswa')
+          .exec((err, datas) => {
+            if (!datas) {
+              return res.status(404).json({'err': 'ko', 'msg': 'No Data'});
+            } else {
+              // return console.log(datas);
+              return res.status(200).json(datas);
+              // next();
+            }
+          })
+});
+apirouter.get("/getmypkl", (req, res, next) => {
+  var _id = req.query.id;
+  var periode = req.query.periode;
+  Dudiguru.find({"_guru": _id, "periode": periode})
+            .populate('_guru _dudi')
+            .exec((err, datas) => {
+              if (!datas) {
+                return res.status(404).json({'err': 'ko', 'msg': 'No Data'});
+              } else {
+                // return console.log(datas);
+                return res.status(200).json(datas);
+                // next();
+              }
+            })
+            // .catch((err) => {
+            //   res.status(500).json(err);
+            // });
 });
 apirouter.get('/getlastdudi', (req, res) => {
   var kode = req.query.kode;
@@ -164,16 +197,17 @@ apirouter.get('/getlastdudi', (req, res) => {
 apirouter.get('/getmysiswas', (req, res) => {
   var _id = req.query.id;
   var _dudi = req.query.dudi;
+  var periode = req.query.periode;
   // console.log(_id);
-  Praktikan.find({"_guru" : _id, "_dudi": _dudi})
-           // .populate('_dudi _guru')
+  Prakerlap.find({"_guru" : _id, "_dudi": _dudi, "periode": periode})
+           .populate('_dudi _guru _siswa')
            .exec((err,siswas) => {
              res.json(siswas);
            });
 });
 
-apirouter.get('/praktikans', ( req, res ) => {
-  Praktikan.find({})
+apirouter.get('/praktikans/:periode', ( req, res ) => {
+  Praktikan.find({periode: req.params.periode})
            // .populate('_guru _dudi')
            .exec(( err, praktikans ) => {
               if ( err ) {
@@ -183,11 +217,13 @@ apirouter.get('/praktikans', ( req, res ) => {
               }
            });
 });
-apirouter.get('/getsiswas', (req, res) => {
-  Praktikan.find({})
+apirouter.get('/getsiswas/:periode', (req, res) => {
+  // console.log(req.params.periode);
+  Praktikan.find({'periode': req.params.periode})
     // .populate('_dudi _guru')
     .exec((err, siswas) => {
-      res.json(siswas);
+      if (!siswas) { return res.json('no data');}
+      else { return res.json(siswas);}
     });
     
 });
@@ -221,11 +257,13 @@ apirouter.put('/siswa', (req, res) => {
   var progli = p.trim();
   var siswa = new Praktikan();
   siswa._id = req.body._id;
+  siswa.nis = req.body.nis;
   siswa.uname = req.body.uname;
   siswa.password = req.body.password;
   siswa.nama = req.body.nama;
   siswa.kelas = req.body.kelas;
-  siswa.progli = progli;
+  siswa.progli = req.body.progli;
+  siswa.periode = req.body.periode
   siswa.hp = req.body.hp;
   // siswa._guru = req.body._guru._id;
   // siswa._dudi = req.body._dudi._id;
@@ -249,11 +287,13 @@ apirouter.post('/importsiswas', (req, res) => {
     var progli = p.trim();
     var siswa = new Praktikan();
     siswa._id = req.body[i]._id;
+    siswa.nis = req.body[i].nis;
     siswa.uname = req.body[i].uname;
     siswa.password = req.body.password;
     siswa.nama = req.body[i].nama;
+    siswa.periode = req.body[i].periode;
     siswa.kelas = req.body[i].kelas;
-    siswa.progli = progli;
+    siswa.progli = req.body[i].progli;
     siswa.hp = req.body[i].hp;
     // if (req.body[i]._guru) siswa._guru = req.body[i]._guru
     // else siswa._guru = '0';
@@ -374,8 +414,23 @@ apirouter.post('/nosurat', (req, res) => {
   }
 });
 // API Prakerlap
-apirouter.get('/calon', (req, res) => {
-  Praktikan.find({}, function(err, siswas){
+// $and: [
+//           { $or: [{a: 1}, {b: 1}] },
+//           { $or: [{c: 1}, {d: 1}] }
+//       ]
+apirouter.get('/jmlterdaftar/:periode', (req, res) => {
+  var periode = req.params.periode;
+  Prakerlap.find({periode}, function(err, terdaftar) {
+    // console.log(terdaftar);
+    res.json(terdaftar);
+  })
+  .catch((err)=>{
+    res.json(err);
+  });
+});
+
+apirouter.get('/calon/:periode', (req, res) => {
+  Praktikan.find({periode: req.params.periode, 'isActive': '0'}, function(err, siswas){
     if (err) console.log(err);
     res.json(siswas);
   });
@@ -389,26 +444,120 @@ apirouter.get('/lastpkl', (req, res) => {
     res.json(last);
   });
 });
+
+apirouter.post('/newpkl', (req, res) => {
+  // console.log(req.body.data);
+  var pkls = req.body.data;
+  var jml = pkls.length;
+  var msg = '';
+  for ( var i = 0; i < jml ; i++){
+    var pkl = new Prakerlap(pkls[i]);
+    // console.log(pkl._siswa);
+    pkl.save()
+       .catch((err)=>{
+          return res.status(500).json(err)
+        })
+       .then(function(pkl){
+        // console.log(pkl._siswa);
+          Praktikan.update({_id: pkl._siswa}, {$set: {'isActive': '1'}}, {multi: true}, (err, ok) => {
+            if (err) { return res.status(500).json(err)}
+            else if (!ok) {msg = 'Gagal Aktifkan siswa '}
+            else {msg = 'Sukses mendaftarkan siswa' }
+          })
+       })
+  }
+  console.log(msg);
+  res.send(msg);
+  // var pkl = new Prakerlap(req.body);
+  // pkl.save()
+  // .catch((err) => {
+  //   return res.status(500).json(err);
+  //   // return false;
+  // })
+  // .then(function(){
+  //   Praktikan.findOneAndUpdate({_id: req.body._siswa}, {$set: {'isActive': '1'}}, function(err, ok){
+  //     if (err) {return res.status(500).json(err);}
+  //     else {return res.json({'status': 'success', 'msg': 'Calon PEserta telah didaftarkan.'})}
+  //   })
+  // })
+});
 // API for Jadwal
 
-apirouter.get('/jadwal', (req, res) => {
-  Jadwal.find({}, function(err, jadwals) {
+apirouter.get('/jadwal/:periode', (req, res) => {
+  var periode = req.params.periode
+  Jadwal.find({periode: periode}, function(err, jadwals) {
     res.json(jadwals);
   });
 });
-// apirouter.use(function(req, res, next) {
-//   try {
-//     if (!req.route)
-//         return next (new Error('404'));  
-//     next();
-//   }
-//   catch (next){
-//     if (next == '404'){
-//       console.log('Tidak Ketemu');
-//     }
-//   }
-// });
+apirouter.post('/jadwal', (req, res) => {
+  var data = req.body;
+  var jadwal = new Jadwal(data)
+  jadwal.save(function(err, ok) {
+    if (err) { return res.json(err);}
+    else { return res.json({'msg': 'ok'})}
+  })
+})
+apirouter.put('/jadwal', (req, res, next) => {
+  var data = req.body;
+  Jadwal.findOneAndUpdate({_id: data._id}, {$set: {
+    start: data.start,
+    end: data.end,
+    kegiatan: data.kegiatan,
+    pelaksana: data.pelaksana,
+    tempat: data.tempat,
+    periode: data.periode
+  }})
+  .then(function(err, ok) {
+    res.json({'msg': 'upd_ok'})
+  })
+  .catch(err => {
+    next(err)
+  })
+})
+// Info
+apirouter.get('/getinfos', function(req, res) {
+  Info.find({}, function(err, infos){
+    res.json(infos);
+  });
+});
 
+// API Guru Dudi
+apirouter.post('/newdg', (req, res) => {
+  var dg = new Dudiguru(req.body);
+  dg.save(function(err, ok) {
+    if (err ) {return console.log('err');}
+    else { res.json({'sukses': 'ok'});}
+  })
+  // console.log(req.body);
+});
+
+apirouter.get('/dgs/:periode', (req, res) => {
+  Dudiguru.find({periode: req.params.periode})
+          .populate('_guru _dudi')
+          .exec(function(err, results) {
+            if (err) {
+              res.json(err);
+            } else {
+              res.json(results);
+            }
+          })
+});
+apirouter.get('/siswasperdudi', (req, res) => {
+  Prakerlap.find({_dudi: req.query._dudi})
+          .populate('_siswa')
+          .exec((err, results) => {
+            if (err) { res.json(err); }
+            else { res.json(results);}
+          });
+});
+apirouter.get('/siswas', (req, res) => {
+  Prakerlap.find({})
+          .populate('_siswa _guru _dudi')
+          .exec((err, results) => {
+            if (err) { res.json(err); }
+            else { res.json(results);}
+          });
+});
 // Router Menu
 apirouter.get('/menu/:role', function(req, res) {
   Menu.find({role: req.params.role}, function(err, menus){
@@ -418,6 +567,37 @@ apirouter.get('/menu/:role', function(req, res) {
     res.json(menus);
   });
 });
+
+// API Pembekalan
+apirouter.get('/bekals/:periode', (req, res) => {
+  var periode = req.params.periode;
+  Pembekalan.find({periode: periode})
+            .populate('_guru _siswa')
+            .exec((err, results) => {
+              if (err) {return res.status(500).json(err)}
+              else if (results < 1) { return res.status(404).json({'msg': 'nodata'})}
+              else { return res.status(200).json(results)}
+            });
+});
+
+apirouter.post('/bekal', (req, res) => {
+  var datas = req.body;
+  var jml = datas.length;
+  // var bekal = new Pembekalan(req.body);
+  for ( var i = 0; i < jml ; i++) {
+    var bekal = new Pembekalan(datas[i]);
+
+    bekal.save().catch(err=> { return res.json(err)}).then(()=>{ return res.json({'msg': 'ok'})})
+  }
+  console.log(jml);
+  // bekal.save((err, ok) => {
+  //   if (err) { return res.json(err)}
+  //   else { return res.json({'msg': 'save_ok'})}
+  // });
+});
+
+
+
 // 404
 apirouter.get('*', (req, res) => {
   res.send('404');

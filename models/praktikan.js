@@ -4,7 +4,7 @@ var mongoose = require('mongoose'),
     
 var praktikanSchema = new Schema({
     _id: String,
-    nis: {type: String, default: '1234/abcd.000'},
+    nis: {type: String},
     uname: String,
     password: String,
     kelas: String,
@@ -12,7 +12,7 @@ var praktikanSchema = new Schema({
     nama: String,
     progli: String,
     hp: String,
-    isActive: {type: String, default: '0'},
+    isActive: {type: String, default: '0'},// 0 = Not Registered; 1 = Registered; 2 = Approved
     pindah: {type: String, default: '0'},
     // _guru: {
     //     type: String,

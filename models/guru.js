@@ -9,11 +9,12 @@ var guruSchema = new Schema({
     nama: String,
     alamat: String,
     hp: String,
-    // _dudi: {
-    //     type: Array,
-    //     ref: 'Dudi',
-    //     default: '0'
-    // },
+    // _dudis: [{
+    //         type: String,
+    //         ref: 'Dudi'
+            
+    //     }],
+        // stories: [{ type: Schema.Types.ObjectId, ref: 'Story' }]
     _role: {
         type: String,
         ref: 'Role',

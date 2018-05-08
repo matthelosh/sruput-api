@@ -7,11 +7,11 @@ var dudiSchema = new Schema({
     alamat: String,
     kota: String,
     telp: {type:String, default: '62888888888'},
-    pemilik: {type: String, default: 'Fulan'}
-    // _guru: {
-    //     type: String,
-    //     ref: 'Guru'
-    // }
+    pemilik: {type: String, default: 'Fulan'},
+    _guru: {
+        type: String,
+        ref: 'Guru'
+    }
 });
 
 module.exports = mongoose.model('Dudi', dudiSchema, 'dudis');
