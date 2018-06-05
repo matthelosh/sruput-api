@@ -14,6 +14,8 @@ var Menu = require('./../../models/menu');
 var Info = require('./../../models/info');
 var Dudiguru = require('./../../models/gurududis');
 var Pembekalan = require('./../../models/pembekalans');
+var Nilai = require('./../../models/nilai');
+var AspekNilai = require('./../../models/aspeknilais');
 
 var storage = multer.diskStorage({ //multers disk storage settings
         destination: function (req, file, cb) {
@@ -149,10 +151,15 @@ apirouter.get('/profile', (req, res) => {
 // Get Dudis for this Guru
 apirouter.get('/getmydudis', (req, res, next) => {
   var _id = req.query.id;
-  Dudi.find({_guru: _id}, (err, dudis) => {
-    console.log(dudis);
-    res.json(dudis);
-  });
+  var periode = req.query.periode;
+  Dudiguru.find({_guru: _id, periode: periode})
+          .populate('_dudi')
+          .exec(function(err, dudis) {
+            res.json(dudis)
+          })
+          // .catch((err) => {
+          //   next(err);
+          // })
 });
 apirouter.get('/getpkl/:periode', (req, res, next) => {
   Prakerlap.find({periode: req.params.periode})
@@ -170,8 +177,8 @@ apirouter.get('/getpkl/:periode', (req, res, next) => {
 apirouter.get("/getmypkl", (req, res, next) => {
   var _id = req.query.id;
   var periode = req.query.periode;
-  Dudiguru.find({"_guru": _id, "periode": periode})
-            .populate('_guru _dudi')
+  Prakerlap.find({"_guru": _id, "periode": periode})
+            .populate('_dudi')
             .exec((err, datas) => {
               if (!datas) {
                 return res.status(404).json({'err': 'ko', 'msg': 'No Data'});
@@ -429,6 +436,15 @@ apirouter.get('/jmlterdaftar/:periode', (req, res) => {
   });
 });
 
+apirouter.get('/regSiswas/:periode', (req, res) => {
+  var periode = req.params.periode;
+  Prakerlap.find({'periode': periode})
+            .populate('_siswa _dudi _guru')
+            .exec(function(err, siswas) {
+              if ( err ) return res.json(err)
+              res.json(siswas);
+            });
+});
 apirouter.get('/calon/:periode', (req, res) => {
   Praktikan.find({periode: req.params.periode, 'isActive': '0'}, function(err, siswas){
     if (err) console.log(err);
@@ -596,7 +612,12 @@ apirouter.post('/bekal', (req, res) => {
   // });
 });
 
-
+// Penilaian
+apirouter.get('/getkategorinilai', (req, res) => {
+  AspenNilai.find({}, (err, penilaians) => {
+    res.json(penilaians)
+  })
+})
 
 // 404
 apirouter.get('*', (req, res) => {

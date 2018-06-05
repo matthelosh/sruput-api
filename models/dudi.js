@@ -11,7 +11,8 @@ var dudiSchema = new Schema({
     _guru: {
         type: String,
         ref: 'Guru'
-    }
+    },
+    isActive: String
 });
 
 module.exports = mongoose.model('Dudi', dudiSchema, 'dudis');
