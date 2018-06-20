@@ -16,6 +16,7 @@ var Dudiguru = require('./../../models/gurududis');
 var Pembekalan = require('./../../models/pembekalans');
 var Nilai = require('./../../models/nilai');
 var AspekNilai = require('./../../models/aspeknilais');
+var Nilai = require('./../../models/nilai');
 
 var storage = multer.diskStorage({ //multers disk storage settings
         destination: function (req, file, cb) {
@@ -210,6 +211,32 @@ apirouter.get('/getmysiswas', (req, res) => {
            .populate('_dudi _guru _siswa')
            .exec((err,siswas) => {
              res.json(siswas);
+           });
+});
+
+// Update data penempatan prakerlap
+apirouter.put('/updpenempatan/', (req, res, next) => {
+  // console.log(req.body);
+  var id = req.body._id;
+  Prakerlap.update({_id:id}, {$set: {_guru:req.body._guru, _dudi: req.body._dudi}})
+          .exec((err, ok) => {
+            if (err) { res.json(err)}
+            else { res.send('ok')}
+          });
+});
+apirouter.delete('/delpenempatan/:id/:_siswa', (req, res) => {
+  var _siswa = req.params._siswa;
+  Prakerlap.remove({_id: req.params.id})
+           .exec((err, ok) => {
+            if ( err ) { res.json(err) }
+            else { 
+              Praktikan.update({_id: _siswa}, {$set: {"isActive": "0"}})
+                        .exec((err, upd) => {
+                          if (err) { res.json(err) }
+                          else { res.send('ok') }
+                        });
+               
+            }
            });
 });
 
@@ -613,11 +640,46 @@ apirouter.post('/bekal', (req, res) => {
 });
 
 // Penilaian
-apirouter.get('/getkategorinilai', (req, res) => {
-  AspenNilai.find({}, (err, penilaians) => {
+apirouter.get('/headernilai', (req, res) => {
+  AspekNilai.find({}, (err, penilaians) => {
     res.json(penilaians)
   })
 })
+apirouter.get('/scoredsiswas/:periode', (req, res) => {
+  Nilai.find({periode: req.params.periode})
+       .populate('_siswa _guru _dudi')
+       .exec(function(err, siswas) {
+          if (err) { res.json(err) }
+          else { res.json(siswas)}
+       })
+})
+apirouter.post('/newnilai', (req, res) => {
+  Nilai.find({_siswa: req.body._siswa}, (err, exist) => {
+    if (exist.length >= 1) {
+      console.log(exist)
+      res.send('duplicate')
+    } else {
+      var nilai = new Nilai(req.body)
+      Prakerlap.findOneAndUpdate({"_siswa": req.body._siswa}, {$set: {"scored": "1"}}, function(err, upd) {
+        if (upd) { 
+          nilai.save(function(er, ok) {
+            if (ok){
+              res.json('ok')
+            } else {
+              res.json(er)
+            }
+          })
+        } else {
+          res.json(err)
+        }
+      })
+      // Prakerlap.find({_siswa: req.body._siswa}, function(err, siswa) {
+      //   console.log(siswa)
+      // })
+    }
+  })
+  
+});
 
 // 404
 apirouter.get('*', (req, res) => {
